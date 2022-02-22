@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_video_compress/flutter_video_compress.dart';
 import 'package:image_picker/image_picker.dart' show ImagePicker, ImageSource;
 import 'package:video_player/video_player.dart';
-import 'my-theme.dart';
+//import 'my-theme.dart';
 
 void main() => runApp(MyApp(title: 'Flutter Video Compress Example'));
 
@@ -96,7 +96,6 @@ class _MyAppState extends State<MyApp> {
   Widget _buildMaterialWarp(Widget body) {
     return MaterialApp(
       title: widget.title,
-      theme: myTheme,
       home: Scaffold(
           appBar: AppBar(
             title: Text(widget.title),

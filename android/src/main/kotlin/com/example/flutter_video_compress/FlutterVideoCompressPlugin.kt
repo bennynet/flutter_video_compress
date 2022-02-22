@@ -5,23 +5,33 @@ import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
 import io.flutter.plugin.common.PluginRegistry.Registrar
+import io.flutter.embedding.engine.plugins.FlutterPlugin
+import io.flutter.plugin.common.BinaryMessenger
 
 
-class FlutterVideoCompressPlugin : MethodCallHandler {
+class FlutterVideoCompressPlugin : MethodCallHandler,FlutterPlugin {
 
     private val channelName = "flutter_video_compress"
     private val utility = Utility(channelName)
     private var ffmpegCommander: FFmpegCommander? = null
-
+    lateinit var channel:MethodChannel;
+    lateinit var  binding: FlutterPlugin.FlutterPluginBinding;
     companion object {
-        private lateinit var reg: Registrar
+        //private lateinit var reg: Registrar
 
         @JvmStatic
         fun registerWith(registrar: Registrar) {
-            val channel = MethodChannel(registrar.messenger(), "flutter_video_compress")
-            channel.setMethodCallHandler(FlutterVideoCompressPlugin())
-            reg = registrar
+            //val channel = MethodChannel(registrar.messenger(), "flutter_video_compress")
+            //channel.setMethodCallHandler(FlutterVideoCompressPlugin())
+            //reg = registrar
+            var plugin=FlutterVideoCompressPlugin()
+            plugin.onAttachedToEngine(registrar.messenger())
         }
+    }
+
+    fun onAttachedToEngine(messager: BinaryMessenger){
+        this.channel = MethodChannel(messager, "flutter_video_compress")
+        this.channel.setMethodCallHandler(this)
     }
 
     override fun onMethodCall(call: MethodCall, result: Result) {
@@ -37,12 +47,12 @@ class FlutterVideoCompressPlugin : MethodCallHandler {
                 val path = call.argument<String>("path")!!
                 val quality = call.argument<Int>("quality")!!
                 val position = call.argument<Int>("position")!!.toLong()
-                ThumbnailUtility(channelName).getThumbnailWithFile(reg.context(), path, quality,
+                ThumbnailUtility(channelName).getThumbnailWithFile(binding.applicationContext , path, quality,
                         position, result)
             }
             "getMediaInfo" -> {
                 val path = call.argument<String>("path")!!
-                result.success(utility.getMediaInfoJson(reg.context(), path).toString())
+                result.success(utility.getMediaInfoJson(binding.applicationContext, path).toString())
             }
             "compressVideo" -> {
                 val path = call.argument<String>("path")!!
@@ -54,7 +64,7 @@ class FlutterVideoCompressPlugin : MethodCallHandler {
                 val frameRate = call.argument<Int>("frameRate")
 
                 ffmpegCommander?.compressVideo(path, VideoQuality.from(quality), deleteOrigin,
-                        startTime, duration, includeAudio, frameRate, result, reg.messenger())
+                        startTime, duration, includeAudio, frameRate, result, binding.binaryMessenger)
             }
             "cancelCompression" -> {
                 ffmpegCommander?.cancelCompression()
@@ -67,10 +77,10 @@ class FlutterVideoCompressPlugin : MethodCallHandler {
                 val duration = call.argument<Int>("duration")!!.toLong()
 
                 ffmpegCommander?.convertVideoToGif(path, startTime, endTime, duration, result,
-                        reg.messenger())
+                    binding.binaryMessenger)
             }
             "deleteAllCache" -> {
-                utility.deleteAllCache(reg.context(), result)
+                utility.deleteAllCache(binding.applicationContext, result)
             }
             else -> result.notImplemented()
         }
@@ -78,8 +88,19 @@ class FlutterVideoCompressPlugin : MethodCallHandler {
 
     private fun initFfmpegCommanderIfNeeded() {
         if (ffmpegCommander == null) {
-            ffmpegCommander = FFmpegCommander(reg.context(), channelName)
+            ffmpegCommander = FFmpegCommander(binding.applicationContext, channelName)
         }
+    }
+
+
+
+    override fun onAttachedToEngine(p0: FlutterPlugin.FlutterPluginBinding) {
+        binding=p0;
+        this.onAttachedToEngine(p0.binaryMessenger)
+    }
+
+    override fun onDetachedFromEngine(p0: FlutterPlugin.FlutterPluginBinding) {
+        this.channel.setMethodCallHandler(null)
     }
 }
 
